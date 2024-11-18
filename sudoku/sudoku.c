@@ -24,8 +24,9 @@ bool col_check[SIZE];
 bool box_check[SIZE];
 
 void printBoard(int board[SIZE][SIZE]) {
-    for(int i = 0; i<SIZE; i++) {
-        for(int j = 0; j<SIZE; j++) {
+  int i, j;
+    for(i = 0; i<SIZE; i++) {
+        for(j = 0; j<SIZE; j++) {
             printf("%5d", board[i][j]);
         }
         printf("\n");
@@ -40,10 +41,11 @@ void* checkRow(void* args) {
   // make var for row index
   int row_index = *(int*) args;
   free(args);
+
   // make var for numbers we've seen
   bool seen[10] = {false};
   int col;
-  for(col=0; col < SIZE; col++){
+  for(col=0; col < 3; col++){
     int num = board[row_index][col];
     if(num != 0){
       if(seen[num] == true){
@@ -87,7 +89,33 @@ void* checkCol(void* args) {
 // value for that box appropriately. If no number is repeated in that box,
 // box_check[box] will be set to true; otherwise, it will be false.
 void* checkBox(void* args) {
-    return NULL;
+int box_index = *(int*) args;  // Get the box index
+  free(args);  // Free the allocated memory for box index
+
+  bool seen[10] = {false};  // Array to track numbers we've seen (1-9, index 0 unused)
+
+  // Calculate the starting row and column
+  int row_start = (box_index / 3) * 3;
+  int col_start = (box_index % 3) * 3;
+
+  // Traverse the 3x3 subgrid (box)
+  int row, col;
+  for ( row = row_start; row < row_start + 3; row++) {
+      for ( col = col_start; col < col_start + 3; col++) {
+          int num = board[row][col];  // Get the number at board[row][col]
+          if (num != 0) {  // Only check non-empty cells
+              if (seen[num] == true) {  // If we've seen this number before in the box
+                  box_check[box_index] = false;  // Mark the box as invalid
+                  return NULL;  // No need to continue, early exit
+              } else {
+                  seen[num] = true;  // Mark this number as seen
+              }
+          }
+      }
+  }
+
+  box_check[box_index] = true;  // If no duplicates were found, mark the box as valid
+  return NULL;
 }
 
 // Spawn a thread to fill each cell in each result matrix.
@@ -98,9 +126,9 @@ int main() {
     printBoard(board);
     
     // 2. Create pthread_t objects for our threads.
-    pthread_t row_threads[SIZE]
-    pthread_t col_threads[SIZE]
-    pthread_t box_threads[SIZE]
+    pthread_t row_threads[SIZE];
+    pthread_t col_threads[SIZE];
+    pthread_t box_threads[SIZE];
     
     // 3. Create a thread for each cell of each matrix operation.
     int r, c, b;
@@ -135,9 +163,10 @@ int main() {
     printf("Results:\n");
     bool all_rows_passed = true;
     printf("Rows:\n");
-    for (int i = 0; i < SIZE; i++) {
-        if (!row_check[i]) {
-            printf("Row %i did not pass\n", i);
+    int rc;
+    for ( rc = 0; rc < SIZE; rc++) {
+        if (!row_check[rc]) {
+            printf("Row %i did not pass\n", rc);
             all_rows_passed = false;
         }
     }
@@ -147,9 +176,10 @@ int main() {
     
     bool all_cols_passed = true;
     printf("Cols:\n");
-    for (int i = 0; i < SIZE; i++) {
-        if (!col_check[i]) {
-            printf("Col %i did not pass\n", i);
+    int cc;
+    for ( cc = 0; cc < SIZE; cc++) {
+        if (!col_check[cc]) {
+            printf("Col %i did not pass\n", cc);
             all_cols_passed = false;
         }
     }
@@ -159,9 +189,10 @@ int main() {
     
     bool all_boxes_passed = true;
     printf("Boxes:\n");
-    for (int i = 0; i < SIZE; i++) {
-        if (!box_check[i]) {
-            printf("Box %i did not pass\n", i);
+    int bc;
+    for ( bc = 0; bc < SIZE; bc++) {
+        if (!box_check[bc]) {
+            printf("Box %i did not pass\n", bc);
             all_boxes_passed = false;
         }
     }
