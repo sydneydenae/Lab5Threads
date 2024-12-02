@@ -12,6 +12,11 @@ int matProductResult[MAX][MAX];
 
 int MAX;
 
+struct cell{
+    int row;
+    int col;
+};
+
 void fillMatrix(int matrix[MAX][MAX]) {
     for(int i = 0; i<MAX; i++) {
         for(int j = 0; j<MAX; j++) {
@@ -34,7 +39,14 @@ void printMatrix(int matrix[MAX][MAX]) {
 // the cell of matSumResult at the coordinates to the sum of the
 // values at the coordinates of matA and matB.
 void* computeSum(void* args) { // pass in the number of the ith thread
-    return NULL;
+   struct cell* mycell = (struct cell*)args;
+   int row = mycell -> row;
+   int col = mycell -> col;
+   
+   int matANum = matA[row][col];
+   int matBNum = matB[row][col];
+
+   matSumResult[row][col] = matANum + matBNum;
 }
 
 // Fetches the appropriate coordinates from the argument, and sets
@@ -53,12 +65,17 @@ void* computeProduct(void* args) { // pass in the number of the ith thread
 
 // Spawn a thread to fill each cell in each result matrix.
 // How many threads will you spawn?
-int main() {
+int main(int argc, char* argv[]) {
     srand(time(0));  // Do Not Remove. Just ignore and continue below.
     
     // 0. Get the matrix size from the command line and assign it to MAX
-    
+    if(argc < 2){
+        printf("Usage: %s <matrix_size>\n", argv[0]);\
+        return 1;
+    }
     // 1. Fill the matrices (matA and matB) with random values.
+    fillMatrix(matA);
+    fillMatrix(matB);
     
     // 2. Print the initial matrices.
     printf("Matrix A:\n");
@@ -67,6 +84,9 @@ int main() {
     printMatrix(matB);
     
     // 3. Create pthread_t objects for our threads.
+    pthread_t sumThreads[Max][Max];
+    pthread_t diffThreads[Max][Max];
+    pthread_t productThreads[Max][Max];
     
     // 4. Create a thread for each cell of each matrix operation.
     // 
@@ -76,8 +96,26 @@ int main() {
     // One way to do this is to malloc memory for the thread number i, populate the coordinates
     // into that space, and pass that address to the thread. The thread will use that number to calcuate 
     // its portion of the matrix. The thread will then have to free that space when it's done with what's in that memory.
-    
+    for(int i = 0; i < MAX; i++){
+        for(int j = 0; j< MAX; j++){
+            struct cell* myCell = (struct cell*)malloc(sizeof(struct cell));
+            myCell -> row = i;
+            myCell -> col = j;
+
+            pthread_create(&sumThreads[i][j], NULL, computeSum, (void*)myCell);
+            pthread_create(&diffThreads[i][j], NULL, computeDiff, (void*)myCell);
+            pthread_create(&productThreads[i][j], NULL, computeProduct, (void*)myCell);
+        }
+
+    }
     // 5. Wait for all threads to finish.
+    for(int i = 0; i < MAX; i++){
+        for(int j = 0; j < MAX; j++){
+            pthread_join(sumThreads[i][j], NULL);
+            pthread_join(diffThreads[i][j], NULL);
+            pthread_join(productThreads[i][j], NULL);
+        }
+    }
     
     // 6. Print the results.
     printf("Results:\n");
